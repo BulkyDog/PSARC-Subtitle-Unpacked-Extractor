@@ -2,19 +2,16 @@ import sys
 import re
 from collections import OrderedDict
 
-# === CONFIG ===
 MIN_LEN = 8
 UTF8_THRESHOLD = 0.85
 
 def is_printable_utf8(s: str) -> bool:
-    """Check if string is mostly printable and valid."""
     if len(s) < MIN_LEN:
         return False
     printable = sum(ch.isprintable() for ch in s)
     return printable / max(len(s), 1) >= UTF8_THRESHOLD
 
 def extract_utf8_strings(data: bytes):
-    """Extract null-terminated UTF-8 strings from binary."""
     results = []
     current = bytearray()
     for b in data:
@@ -32,15 +29,12 @@ def extract_utf8_strings(data: bytes):
     return results
 
 def extract_utf16_le_strings(data: bytes):
-    """Extract possible UTF-16 LE sequences."""
     results = []
     current = bytearray()
-
     i = 0
     while i < len(data) - 1:
-        # Potential UTF-16 LE printable block
-        if data[i+1] == 0x00:
-            current.extend(data[i:i+2])
+        if data[i + 1] == 0x00:
+            current.extend(data[i:i + 2])
             i += 2
         else:
             if len(current) >= MIN_LEN * 2:
@@ -56,7 +50,7 @@ def extract_utf16_le_strings(data: bytes):
 
 def main():
     if len(sys.argv) < 2:
-        print("Usage: python extract_subtitles.py <file.subtitles>")
+        print("Usage: python extractor.py <SUBTITLE/COMMON file>")
         return
 
     file_path = sys.argv[1]
@@ -69,15 +63,12 @@ def main():
     print("[*] Extracting UTF-16 LE candidate text…")
     utf16_strings = extract_utf16_le_strings(data)
 
-    # Merge and dedupe while preserving order
     all_lines = list(OrderedDict.fromkeys(utf8_strings + utf16_strings))
 
-    # Save all raw extracted
     with open("extracted_strings.txt", "w", encoding="utf-8") as out:
         for line in all_lines:
             out.write(line + "\n")
 
-    # Simple cleanup for candidate subtitle lines
     pattern = re.compile(r"[A-Za-zÇĞİÖŞÜçğıöşü0-9\.,!\?]+")
     candidates = [line for line in all_lines if pattern.search(line)]
 
